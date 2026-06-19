@@ -42,53 +42,66 @@ def create_pdf_report(result):
     pdf.set_auto_page_break(auto=True, margin=15)
 
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "AI Customer Review Analytics Report", ln=True)
+    pdf.cell(0, 10, "Customer Review Analytics Report", ln=True)
 
     pdf.ln(5)
 
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(0, 8, f"Total Reviews: {result['total_reviews']}", ln=True)
+    pdf.set_font("Arial", "B", 13)
+    pdf.cell(0, 8, "1. Summary Table", ln=True)
 
-    pdf.ln(5)
+    pdf.set_font("Arial", "", 11)
+    pdf.cell(60, 8, "Metric", border=1)
+    pdf.cell(40, 8, "Count", border=1)
+    pdf.cell(40, 8, "Percentage", border=1, ln=True)
 
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 8, "Sentiment Summary", ln=True)
-
-    pdf.set_font("Arial", "", 12)
+    pdf.cell(60, 8, "Total Reviews", border=1)
+    pdf.cell(40, 8, str(result["total_reviews"]), border=1)
+    pdf.cell(40, 8, "-", border=1, ln=True)
 
     for sentiment, count in result["sentiment_counts"].items():
         percentage = result["sentiment_percentages"].get(sentiment, 0)
-        pdf.cell(0, 8, f"{clean_text(sentiment)}: {count} (%{percentage})", ln=True)
+        pdf.cell(60, 8, clean_text(sentiment), border=1)
+        pdf.cell(40, 8, str(count), border=1)
+        pdf.cell(40, 8, f"%{percentage}", border=1, ln=True)
 
-    pdf.ln(5)
+    pdf.ln(8)
 
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 8, "Category Distribution", ln=True)
-
-    pdf.set_font("Arial", "", 12)
-
-    for category, count in result["category_counts"].items():
-        pdf.cell(0, 8, f"{clean_text(category)}: {count}", ln=True)
-
-    pdf.ln(5)
-
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 8, "AI Summary", ln=True)
+    pdf.set_font("Arial", "B", 13)
+    pdf.cell(0, 8, "2. Category Distribution", ln=True)
 
     pdf.set_font("Arial", "", 11)
+    pdf.cell(80, 8, "Category", border=1)
+    pdf.cell(40, 8, "Count", border=1)
+    pdf.cell(40, 8, "Percentage", border=1, ln=True)
 
-    summary_text = clean_text(result["ai_summary"])
-    pdf.multi_cell(0, 7, summary_text)
+    for category, count in result["category_counts"].items():
+        percentage = round((count / result["total_reviews"]) * 100, 1)
+        pdf.cell(80, 8, clean_text(category), border=1)
+        pdf.cell(40, 8, str(count), border=1)
+        pdf.cell(40, 8, f"%{percentage}", border=1, ln=True)
 
-    pdf.ln(5)
+    pdf.ln(8)
 
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 8, "Top Negative Reviews", ln=True)
+    pdf.set_font("Arial", "B", 13)
+    pdf.cell(0, 8, "3. Most Frequent Words", ln=True)
+
+    pdf.set_font("Arial", "", 11)
+    pdf.cell(80, 8, "Word", border=1)
+    pdf.cell(40, 8, "Count", border=1, ln=True)
+
+    for word, count in result["top_words"]:
+        pdf.cell(80, 8, clean_text(word), border=1)
+        pdf.cell(40, 8, str(count), border=1, ln=True)
+
+    pdf.ln(8)
+
+    pdf.set_font("Arial", "B", 13)
+    pdf.cell(0, 8, "4. Top Negative Reviews", ln=True)
 
     pdf.set_font("Arial", "", 10)
 
-    for review in result["negative_reviews"]:
-        pdf.multi_cell(0, 6, "- " + clean_text(review))
+    for index, review in enumerate(result["negative_reviews"][:10], start=1):
+        pdf.multi_cell(0, 7, f"{index}. {clean_text(review)}")
         pdf.ln(2)
 
     pdf_output = BytesIO()
@@ -106,9 +119,9 @@ st.set_page_config(
     page_icon="💬",
     layout="wide"
 )
+
 st.markdown("""
 <style>
-
 .main {
     padding-top: 2rem;
 }
@@ -123,6 +136,33 @@ st.markdown("""
 
 [data-testid="metric-container"] label {
     font-size: 18px;
+}
+
+.dashboard-card {
+    background-color: #ffffff;
+    color: #111827;
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    min-height: 520px;
+    margin-bottom: 20px;
+}
+
+.dashboard-card h3 {
+    color: #111827;
+    font-size: 19px;
+    margin-bottom: 10px;
+}
+
+.card-note {
+    color: #4b5563;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.highlight-count {
+    color: #4f46e5;
+    font-weight: 700;
 }
 
 </style>
@@ -178,51 +218,9 @@ if uploaded_file is not None:
         else:
             st.success("File analyzed successfully!")
 
-            st.markdown("---")
-            st.markdown("## 📊 Analysis Results")
-
-            st.metric("Total Reviews", result["total_reviews"])
-
             sentiment_counts = result["sentiment_counts"]
             sentiment_percentages = result["sentiment_percentages"]
             category_counts = result["category_counts"]
-
-            col1, col2, col3 = st.columns(3)
-
-            col1.metric(
-                "Pozitif",
-                sentiment_counts.get("Pozitif", 0),
-                f"%{sentiment_percentages.get('Pozitif', 0)}"
-            )
-
-            col2.metric(
-                "Nötr",
-                sentiment_counts.get("Nötr", 0),
-                f"%{sentiment_percentages.get('Nötr', 0)}"
-            )
-
-            col3.metric(
-                "Negatif",
-                sentiment_counts.get("Negatif", 0),
-                f"%{sentiment_percentages.get('Negatif', 0)}"
-            )
-
-            st.markdown("## 🤖 AI Business Summary")
-            st.info(result["ai_summary"])
-            st.subheader("AI Action Plan")
-            st.success(result["ai_action_plan"])
-
-            pdf_report = create_pdf_report(result)
-
-            st.download_button(
-                label="Download PDF Report",
-                data=pdf_report,
-                file_name="customer_review_analytics_report.pdf",
-                mime="application/pdf"
-            )
-
-            st.markdown("---")
-            st.markdown("## 📈 Analytics Dashboard")
 
             sentiment_df = pd.DataFrame(
                 sentiment_counts.items(),
@@ -239,50 +237,115 @@ if uploaded_file is not None:
                 columns=["Word", "Count"]
             )
 
-            dash_col1, dash_col2 = st.columns(2)
+            st.markdown("---")
+            st.markdown("## 📊 Analysis Results")
 
-            with dash_col1:
-                st.markdown("### Sentiment Distribution")
-                st.dataframe(sentiment_df, use_container_width=True)
+            kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+
+            kpi1.metric("Total Reviews", result["total_reviews"])
+            kpi2.metric(
+                "Pozitif",
+                sentiment_counts.get("Pozitif", 0),
+                f"%{sentiment_percentages.get('Pozitif', 0)}"
+            )
+            kpi3.metric(
+                "Nötr",
+                sentiment_counts.get("Nötr", 0),
+                f"%{sentiment_percentages.get('Nötr', 0)}"
+            )
+            kpi4.metric(
+                "Negatif",
+                sentiment_counts.get("Negatif", 0),
+                f"%{sentiment_percentages.get('Negatif', 0)}"
+            )
+
+            st.markdown("## 📈 Business Dashboard")
+
+            card1, card2, card3, card4 = st.columns(4)
+
+            with card1:
+                st.markdown("### Ana Duygu Dağılımı")
 
                 fig_sentiment = px.pie(
                     sentiment_df,
                     names="Sentiment",
                     values="Count",
-                    hole=0.45,
-                    title="Sentiment Distribution"
+                    hole=0.55
                 )
-
+                fig_sentiment.update_layout(
+                    height=300,
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    showlegend=True
+                )
                 st.plotly_chart(fig_sentiment, use_container_width=True)
 
-            with dash_col2:
-                st.markdown("### Category Distribution")
-                st.dataframe(category_df, use_container_width=True)
+                st.markdown("**Yoğunluk:**")
+                st.write(f"Pozitif: {sentiment_counts.get('Pozitif', 0)} adet (%{sentiment_percentages.get('Pozitif', 0)})")
+                st.write(f"Nötr: {sentiment_counts.get('Nötr', 0)} adet (%{sentiment_percentages.get('Nötr', 0)})")
+                st.write(f"Negatif: {sentiment_counts.get('Negatif', 0)} adet (%{sentiment_percentages.get('Negatif', 0)})")
 
-                fig_category = px.pie(
+            with card2:
+                st.markdown("### Kategori Kırılımları")
+
+                fig_category = px.bar(
                     category_df,
-                    names="Category",
-                    values="Count",
-                    hole=0.45,
-                    title="Category Distribution"
+                    x="Category",
+                    y="Count"
                 )
-
+                fig_category.update_layout(
+                    height=300,
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    xaxis_title="Kategori",
+                    yaxis_title="Yorum Sayısı"
+                )
                 st.plotly_chart(fig_category, use_container_width=True)
 
-            dash_col3, dash_col4 = st.columns(2)
+                st.markdown("**Yoğunluk:**")
+                for _, row in category_df.head(6).iterrows():
+                    pct = round((row["Count"] / result["total_reviews"]) * 100, 1)
+                    st.write(f"{row['Category']}: {row['Count']} adet (%{pct})")
 
-            with dash_col3:
-                st.markdown("### Most Frequent Words")
-                st.dataframe(top_words_df, use_container_width=True)
-                st.bar_chart(top_words_df.set_index("Word"))
+            with card3:
+                st.markdown("### Kelime Yoğunluğu")
 
-                wordcloud_fig = create_wordcloud(result["top_words"])
-                st.pyplot(wordcloud_fig)
+                fig_words = px.bar(
+                    top_words_df,
+                    x="Word",
+                    y="Count"
+                )
+                fig_words.update_layout(
+                    height=300,
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    xaxis_title="Kelime",
+                    yaxis_title="Kullanım"
+                )
+                st.plotly_chart(fig_words, use_container_width=True)
 
-            with dash_col4:
-                st.markdown("### Top Negative Reviews")
-                for review in result["negative_reviews"]:
-                    st.error(review)
+                st.markdown("**En sık geçen kelimeler:**")
+                for _, row in top_words_df.head(6).iterrows():
+                    st.write(f"{row['Word']}: {row['Count']} adet")
+
+            with card4:
+                st.markdown("### Öne Çıkan Negatif Yorumlar")
+
+                for review in result["negative_reviews"][:5]:
+                    st.warning(review)
+
+            pdf_report = create_pdf_report(result)
+
+            st.download_button(
+                label="📄 Analiz Raporunu PDF Olarak İndir",
+                data=pdf_report,
+                file_name="customer_review_analytics_report.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )        
+
+            st.markdown("---")
+            st.markdown("## ☁️ Word Cloud")
+
+            wordcloud_fig = create_wordcloud(result["top_words"])
+            st.pyplot(wordcloud_fig)
 
             st.subheader("Review Filters")
 
@@ -327,10 +390,11 @@ if uploaded_file is not None:
                         "question": question,
                         "answer": answer_result["answer"]
                     })
-                    if st.session_state.chat_history:
-                        st.markdown("### Chat History")
 
-                        for chat in reversed(st.session_state.chat_history):
-                            st.markdown(f"**👤 You:** {chat['question']}")
-                            st.markdown(f"**🤖 AI:** {chat['answer']}")
-                            st.markdown("---")                          
+            if st.session_state.chat_history:
+                st.markdown("### Chat History")
+
+                for chat in reversed(st.session_state.chat_history):
+                    st.markdown(f"**👤 You:** {chat['question']}")
+                    st.markdown(f"**🤖 AI:** {chat['answer']}")
+                    st.markdown("---")                        
