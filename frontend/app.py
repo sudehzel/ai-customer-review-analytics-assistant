@@ -99,7 +99,7 @@ def create_pdf_report(result):
     return pdf_output
 
 
-API_URL = https://ai-customer-review-api.onrender.com
+API_URL = "https://ai-customer-review-api.onrender.com"
 
 st.set_page_config(
     page_title="AI Review Analytics",
