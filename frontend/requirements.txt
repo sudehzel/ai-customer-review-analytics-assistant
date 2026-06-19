@@ -1,0 +1,8 @@
+streamlit
+requests
+urllib3
+pandas
+plotly
+fpdf
+wordcloud
+matplotlib
